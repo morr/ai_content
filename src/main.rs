@@ -183,9 +183,10 @@ impl FileTreeApp {
                     _ => "",
                 };
 
-                println!("===== Start: {} =====", path.display());
+                let relative_path = path.strip_prefix(&self.base_dir).unwrap();
+                println!("===== Start: ./{} =====", relative_path.display());
                 println!("```{}\n{}\n```", code_block_lang, content);
-                println!("===== End: {} =====", path.display());
+                println!("===== End: ./{} =====", relative_path.display());
             }
         }
     }
@@ -205,9 +206,16 @@ impl FileTreeApp {
                     _ => "",
                 };
 
-                clipboard_content.push_str(&format!("===== Start: {} =====\n", path.display()));
+                let relative_path = path.strip_prefix(&self.base_dir).unwrap();
+                clipboard_content.push_str(&format!(
+                    "===== Start: ./{} =====\n",
+                    relative_path.display()
+                ));
                 clipboard_content.push_str(&format!("```{}\n{}\n```\n", code_block_lang, content));
-                clipboard_content.push_str(&format!("===== End: {} =====\n\n", path.display()));
+                clipboard_content.push_str(&format!(
+                    "===== End: ./{} =====\n\n",
+                    relative_path.display()
+                ));
             }
         }
 
