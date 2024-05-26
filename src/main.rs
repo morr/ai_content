@@ -1,19 +1,16 @@
+use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{self, CentralPanel, CtxRef, TopBottomPanel};
-use eframe::{run_native, epi};
-use ignore::{WalkBuilder, DirEntry};
+use eframe::{epi, run_native};
+use ignore::{DirEntry, WalkBuilder};
 use serde::{Deserialize, Serialize};
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
+use std::cmp::Ordering;
 use std::fs;
 use std::path::{Path, PathBuf};
-use copypasta::{ClipboardContext, ClipboardProvider};
-use std::cmp::Ordering;
 
 fn main() {
     let options = eframe::NativeOptions::default();
-    run_native(
-        Box::new(FileTreeApp::new()),
-        options,
-    );
+    run_native(Box::new(FileTreeApp::new()), options);
 }
 
 #[derive(Default)]
@@ -101,15 +98,25 @@ impl FileTreeApp {
         }
     }
 
-    fn add_to_parent(files: &mut Vec<FileEntry>, parent_path: &Path, file_entry: FileEntry) -> bool {
+    fn add_to_parent(
+        files: &mut Vec<FileEntry>,
+        parent_path: &Path,
+        file_entry: FileEntry,
+    ) -> bool {
         for file in files {
             if file.path == parent_path {
-                if !file.children.iter().any(|child| child.path == file_entry.path) {
+                if !file
+                    .children
+                    .iter()
+                    .any(|child| child.path == file_entry.path)
+                {
                     file.children.push(file_entry);
                     file.children.sort_unstable_by(FileTreeApp::compare_entries);
                 }
                 return true;
-            } else if file.is_dir && Self::add_to_parent(&mut file.children, parent_path, file_entry.clone()) {
+            } else if file.is_dir
+                && Self::add_to_parent(&mut file.children, parent_path, file_entry.clone())
+            {
                 return true;
             }
         }
@@ -117,9 +124,10 @@ impl FileTreeApp {
     }
 
     fn is_excluded(entry: &DirEntry) -> bool {
-        entry.path().components().any(|comp| {
-            comp.as_os_str().to_str() == Some(".git")
-        })
+        entry
+            .path()
+            .components()
+            .any(|comp| comp.as_os_str().to_str() == Some(".git"))
     }
 
     fn toggle_selection(file: &mut FileEntry, selected: bool) {
@@ -261,7 +269,14 @@ impl FileTreeApp {
                 if ui.checkbox(&mut selected, "").clicked() {
                     FileTreeApp::toggle_selection(file, selected);
                 }
-                let label = file.path.strip_prefix(base_dir).unwrap().file_name().unwrap().to_string_lossy().to_string();
+                let label = file
+                    .path
+                    .strip_prefix(base_dir)
+                    .unwrap()
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_string();
                 if file.is_dir {
                     ui.collapsing(label, |ui| {
                         FileTreeApp::render_tree(ui, base_dir, &mut file.children);
