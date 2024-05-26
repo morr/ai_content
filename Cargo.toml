@@ -1,0 +1,13 @@
+[package]
+name = "ai_content"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eframe = "0.16"
+walkdir = "2.3.0"
+ignore = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+copypasta = "0.8.1"
+sha2 = "0.9"
