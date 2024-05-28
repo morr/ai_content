@@ -2,11 +2,26 @@ use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::egui::{self, CentralPanel, CtxRef, ScrollArea, TopBottomPanel};
 use eframe::{epi, run_native};
 use ignore::{DirEntry, WalkBuilder};
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+
+static SUPPORTED_EXTENSIONS: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| {
+    let mut m = HashMap::new();
+    m.insert("rs", "rust");
+    m.insert("json", "json");
+    m.insert("toml", "toml");
+    m.insert("js", "javascript");
+    m.insert("rb", "ruby");
+    m.insert("slim", "slim");
+    m.insert("vue", "vue");
+    m.insert("md", "markdown");
+    m
+});
 
 fn main() {
     let options = eframe::NativeOptions::default();
@@ -171,57 +186,46 @@ impl FileTreeApp {
         }
     }
 
-    fn print_selected_files(&self) {
-        let selected_files = Self::collect_selected_paths(&self.files);
-        for path in selected_files {
-            if let Ok(content) = fs::read_to_string(&path) {
-                let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
-                let code_block_lang = match extension {
-                    "rs" => "rust",
-                    "toml" => "toml",
-                    "json" => "json",
-                    "md" => "markdown",
-                    _ => "",
-                };
-
-                let relative_path = path.strip_prefix(&self.base_dir).unwrap();
-                println!("===== Start: ./{} =====", relative_path.display());
-                println!("```{}\n{}\n```", code_block_lang, content);
-                println!("===== End: ./{} =====", relative_path.display());
-            }
-        }
+    fn get_code_block_language(extension: &str) -> &str {
+        SUPPORTED_EXTENSIONS.get(extension).unwrap_or(&"extension")
     }
 
-    fn copy_selected_files_to_clipboard(&self) {
-        let selected_files = Self::collect_selected_paths(&self.files);
-        let mut clipboard_content = String::new();
+    fn generate_text(&self, selected_files: &[PathBuf]) -> String {
+        let mut content = String::new();
 
         for path in selected_files {
-            if let Ok(content) = fs::read_to_string(&path) {
+            if let Ok(file_content) = fs::read_to_string(path) {
                 let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
-                let code_block_lang = match extension {
-                    "rs" => "rust",
-                    "toml" => "toml",
-                    "json" => "json",
-                    "md" => "markdown",
-                    _ => "",
-                };
+                let code_block_lang = Self::get_code_block_language(extension);
 
                 let relative_path = path.strip_prefix(&self.base_dir).unwrap();
-                clipboard_content.push_str(&format!(
+                content.push_str(&format!(
                     "===== Start: ./{} =====\n",
                     relative_path.display()
                 ));
-                clipboard_content.push_str(&format!("```{}\n{}\n```\n", code_block_lang, content));
-                clipboard_content.push_str(&format!(
+                content.push_str(&format!("```{}\n{}\n```\n", code_block_lang, file_content));
+                content.push_str(&format!(
                     "===== End: ./{} =====\n\n",
                     relative_path.display()
                 ));
             }
         }
 
+        content
+    }
+
+    fn print_selected_files(&self) {
+        let selected_files = Self::collect_selected_paths(&self.files);
+        let content = self.generate_text(&selected_files);
+        println!("{}", content);
+    }
+
+    fn copy_selected_files_to_clipboard(&self) {
+        let selected_files = Self::collect_selected_paths(&self.files);
+        let content = self.generate_text(&selected_files);
+
         let mut clipboard = ClipboardContext::new().unwrap();
-        clipboard.set_contents(clipboard_content).unwrap();
+        clipboard.set_contents(content).unwrap();
     }
 
     fn calculate_selected_files_size(&self) -> u64 {

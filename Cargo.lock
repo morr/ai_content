@@ -60,6 +60,7 @@ dependencies = [
  "copypasta 0.8.2",
  "eframe",
  "ignore",
+ "once_cell",
  "serde",
  "serde_json",
  "sha2",
