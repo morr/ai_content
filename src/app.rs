@@ -23,8 +23,10 @@ impl FileTreeApp {
         let base_dir = current_dir.clone();
         let supported_extensions = get_supported_extensions();
 
+        let tx_clone = tx.clone();
         thread::spawn(move || {
-            build_file_tree(&current_dir, &tx);
+            let mut files = Vec::new();
+            build_file_tree(&current_dir, &mut files, &tx_clone);
         });
 
         let mut files = Vec::new();
