@@ -17,7 +17,7 @@ impl FileTreeApp {
                 let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
                 let code_block_lang = self.get_code_block_language(extension);
 
-                let relative_path = path.strip_prefix(&self.base_dir).unwrap();
+                let relative_path = path.strip_prefix(&self.base_dir).unwrap_or(path).to_path_buf();
                 content.push_str(&format!(
                     "===== Start: ./{} =====\n",
                     relative_path.display()
@@ -50,3 +50,4 @@ impl FileTreeApp {
             .expect("Failed to set clipboard contents");
     }
 }
+

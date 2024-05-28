@@ -55,7 +55,7 @@ dependencies = [
 
 [[package]]
 name = "ai_content"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "copypasta 0.8.2",
  "crossbeam-channel",

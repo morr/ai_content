@@ -3,6 +3,7 @@ use crate::utils::hash_current_dir;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 pub fn get_config_file_path(current_dir: &Path) -> PathBuf {
     let hash = hash_current_dir(current_dir);
@@ -27,7 +28,7 @@ pub fn get_supported_extensions() -> HashMap<String, String> {
     .collect()
 }
 
-pub fn save_config(files: &[FileEntry], base_dir: &Path) -> std::io::Result<()> {
+pub fn save_config(files: &[Arc<FileEntry>], base_dir: &Path) -> std::io::Result<()> {
     let selected_paths = FileEntry::collect_selected_paths(files);
     let json = serde_json::to_string(&selected_paths)?;
     let config_file = get_config_file_path(base_dir);
@@ -40,11 +41,12 @@ pub fn load_config(config_file: &Path) -> std::io::Result<Vec<PathBuf>> {
     Ok(selected_paths)
 }
 
-pub fn apply_saved_state(files: &mut [FileEntry], selected_paths: &[PathBuf]) {
+pub fn apply_saved_state(files: &mut [Arc<FileEntry>], selected_paths: &[PathBuf]) {
     for file in files {
         if selected_paths.contains(&file.path) {
-            file.selected = true;
+            *file.selected.write().unwrap() = true;
         }
-        apply_saved_state(&mut file.children, selected_paths);
+        apply_saved_state(&mut file.children.write().unwrap(), selected_paths);
     }
 }
+

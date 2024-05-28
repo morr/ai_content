@@ -1,7 +1,6 @@
 mod app;
 mod config;
 mod entry;
-mod filesystem;
 mod text_generator;
 mod ui;
 mod utils;
@@ -15,10 +14,8 @@ use env_logger::{Builder, fmt::Color};
 use std::io::Write;
 
 fn main() {
-    // Set the RUST_LOG environment variable programmatically
     env::set_var("RUST_LOG", "info");
 
-    // Initialize env_logger with a custom format
     Builder::from_default_env().format(|buf, record| {
         let mut style = buf.style();
         style.set_color(Color::Green);
