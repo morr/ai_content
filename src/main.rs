@@ -44,7 +44,7 @@ struct FileEntry {
 
 impl FileTreeApp {
     fn new() -> Self {
-        let current_dir = std::env::current_dir().unwrap();
+        let current_dir = std::env::current_dir().expect("Failed to get current directory");
         let config_file = Self::get_config_file_path(&current_dir);
         let mut files = vec![];
         Self::build_file_tree(&current_dir, &mut files);
@@ -94,7 +94,7 @@ impl FileTreeApp {
 
         entries.sort_unstable_by(FileTreeApp::compare_entries);
         for entry in entries {
-            let parent_path = entry.path.clone().parent().unwrap().to_path_buf();
+            let parent_path = entry.path.parent().unwrap().to_path_buf();
             if parent_path == base_path {
                 files.push(entry);
             } else {
@@ -187,7 +187,7 @@ impl FileTreeApp {
     }
 
     fn get_code_block_language(extension: &str) -> &str {
-        SUPPORTED_EXTENSIONS.get(extension).unwrap_or(&"extension")
+        SUPPORTED_EXTENSIONS.get(extension).unwrap_or(&"")
     }
 
     fn generate_text(&self, selected_files: &[PathBuf]) -> String {
@@ -224,21 +224,19 @@ impl FileTreeApp {
         let selected_files = Self::collect_selected_paths(&self.files);
         let content = self.generate_text(&selected_files);
 
-        let mut clipboard = ClipboardContext::new().unwrap();
-        clipboard.set_contents(content).unwrap();
+        let mut clipboard =
+            ClipboardContext::new().expect("Failed to initialize clipboard context");
+        clipboard
+            .set_contents(content)
+            .expect("Failed to set clipboard contents");
     }
 
     fn calculate_selected_files_size(&self) -> u64 {
-        let selected_files = Self::collect_selected_paths(&self.files);
-        let mut total_size = 0;
-
-        for path in selected_files {
-            if let Ok(metadata) = fs::metadata(&path) {
-                total_size += metadata.len();
-            }
-        }
-
-        total_size / 1024 // Convert to kilobytes
+        Self::collect_selected_paths(&self.files)
+            .iter()
+            .filter_map(|path| fs::metadata(path).ok().map(|metadata| metadata.len()))
+            .sum::<u64>()
+            / 1024 // Convert to kilobytes
     }
 }
 
@@ -266,8 +264,8 @@ impl epi::App for FileTreeApp {
             });
         });
 
-        if self.save_config().is_err() {
-            eprintln!("Failed to save configuration.");
+        if let Err(e) = self.save_config() {
+            eprintln!("Failed to save configuration: {}", e);
         }
     }
 
