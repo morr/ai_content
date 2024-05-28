@@ -2,56 +2,79 @@ use crate::entry::FileEntry;
 use crossbeam_channel::Sender;
 use ignore::{DirEntry, WalkBuilder};
 use std::cmp::Ordering;
-use std::path::Path;
+use std::collections::VecDeque;
 use std::io::Result;
+use std::path::Path;
 
 pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender<FileEntry>) -> Result<()> {
-    let walker = WalkBuilder::new(base_path)
-        .add_custom_ignore_filename(".gitignore")
-        .build();
-
     let mut directories: Vec<FileEntry> = vec![];
     let mut entries: Vec<FileEntry> = vec![];
 
-    for entry in walker.flatten() {
-        let entry_path = entry.path().to_path_buf();
-        if entry.path() == base_path || is_excluded(&entry) {
-            continue;
+    // Use a stack to manage directories to process
+    let mut dir_stack: VecDeque<FileEntry> = VecDeque::new();
+    dir_stack.push_back(FileEntry {
+        path: base_path.to_path_buf(),
+        is_dir: true,
+        children: vec![],
+        selected: false,
+    });
+
+    while let Some(mut current_dir) = dir_stack.pop_back() {
+        let current_path = current_dir.path.clone();
+        let sub_walker = WalkBuilder::new(&current_path).add_custom_ignore_filename(".gitignore").build();
+
+        for entry in sub_walker.flatten() {
+            let entry_path = entry.path().to_path_buf();
+            if is_excluded(&entry) {
+                continue;
+            }
+
+            let is_dir = entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
+
+            let file_entry = FileEntry {
+                path: entry_path.clone(),
+                is_dir,
+                children: vec![],
+                selected: false,
+            };
+
+            if is_dir {
+                dir_stack.push_back(file_entry.clone());
+                directories.push(file_entry.clone());
+                tx.send(file_entry).unwrap(); // Send directory first
+            } else {
+                entries.push(file_entry.clone());
+            }
         }
 
-        let is_dir = entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
+        current_dir.children.extend(entries.clone());
+        entries.clear();
+        directories.sort_unstable_by(compare_entries);
+        entries.sort_unstable_by(compare_entries);
 
-        let mut file_entry = FileEntry {
-            path: entry_path.clone(),
-            is_dir,
-            children: vec![],
-            selected: false,
-        };
+        // Add directories and files to their respective parent directories
+        for directory in directories.drain(..) {
+            if directory.path.parent() == Some(&current_path) {
+                current_dir.children.push(directory);
+            }
+        }
+        for entry in entries.drain(..) {
+            if entry.path.parent() == Some(&current_path) {
+                current_dir.children.push(entry);
+            }
+        }
+        current_dir.children.sort_unstable_by(compare_entries);
 
-        if is_dir {
-            build_file_tree(&entry_path, &mut file_entry.children, tx)?;
-            directories.push(file_entry.clone());
-            tx.send(file_entry).unwrap(); // Send directory first
+        if current_path == base_path {
+            files.push(current_dir.clone());
         } else {
-            entries.push(file_entry.clone());
+            let parent_path = current_path.parent().unwrap().to_path_buf();
+            if !add_to_parent(files, &parent_path, current_dir.clone()) {
+                files.push(current_dir.clone());
+            }
         }
-    }
 
-    directories.sort_unstable_by(compare_entries);
-    entries.sort_unstable_by(compare_entries);
-
-    // Add all directories to the root
-    for directory in directories {
-        files.push(directory);
-    }
-
-    // Add all entries to their respective parent directories
-    for entry in entries {
-        let parent_path = entry.path.parent().unwrap().to_path_buf();
-        if !add_to_parent(files, &parent_path, entry.clone()) {
-            println!("Failed to add file entry to parent: {:?}", parent_path);
-        }
-        tx.send(entry).unwrap();
+        tx.send(current_dir.clone()).unwrap(); // Cloning the entry before sending
     }
 
     Ok(())
@@ -70,10 +93,8 @@ pub fn add_to_parent(
     parent_path: &Path,
     file_entry: FileEntry,
 ) -> bool {
-    println!("Trying to add to parent: {:?} -> {:?}", parent_path, file_entry.path);
     for file in files {
         if file.path == parent_path {
-            println!("Found parent: {:?}", parent_path);
             if !file.children.iter().any(|child| child.path == file_entry.path) {
                 file.children.push(file_entry);
                 file.children.sort_unstable_by(compare_entries);
@@ -83,7 +104,6 @@ pub fn add_to_parent(
             return true;
         }
     }
-    println!("Parent not found for: {:?}", file_entry.path);
     false
 }
 
