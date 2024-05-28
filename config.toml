@@ -1,0 +1,9 @@
+[supported_extensions]
+rs = "rust"
+json = "json"
+toml = "toml"
+js = "javascript"
+rb = "ruby"
+slim = "slim"
+vue = "vue"
+md = "markdown"
