@@ -6,7 +6,14 @@ use log::{info, warn};
 use std::path::Path;
 use std::sync::{Arc, RwLock};
 
-pub fn build_file_tree(base_path: &Path, tx: &Sender<Arc<FileEntry>>) {
+pub fn build_file_tree(base_path: &Path, tx: &Sender<Arc<FileEntry>>) -> Arc<FileEntry> {
+    let root_entry = Arc::new(FileEntry {
+        path: base_path.to_path_buf(),
+        is_dir: true,
+        children: RwLock::new(vec![]),
+        selected: RwLock::new(false),
+    });
+
     let walker = WalkBuilder::new(base_path)
         .add_custom_ignore_filename(".gitignore")
         .build();
@@ -27,9 +34,16 @@ pub fn build_file_tree(base_path: &Path, tx: &Sender<Arc<FileEntry>>) {
         let file_entry = Arc::new(FileEntry {
             path: relative_path.clone(),
             is_dir,
-            children: RwLock::new(vec![]),  // Use RwLock for children
-            selected: RwLock::new(false),   // Use RwLock for selected
+            children: RwLock::new(vec![]),
+            selected: RwLock::new(false),
         });
+
+        if is_dir {
+            let subdir_entry = build_file_tree(&entry_path, tx);
+            file_entry.children.write().unwrap().push(subdir_entry);
+        }
+
+        root_entry.children.write().unwrap().push(file_entry.clone());
 
         if tx.send(file_entry).is_err() {
             warn!("Failed to send file entry for: ./{}", relative_path.display());
@@ -39,4 +53,5 @@ pub fn build_file_tree(base_path: &Path, tx: &Sender<Arc<FileEntry>>) {
     }
 
     info!("Total number of files found: {}", file_count);
+    root_entry
 }
