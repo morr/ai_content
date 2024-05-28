@@ -32,17 +32,18 @@ impl epi::App for App {
         CentralPanel::default().show(ctx, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
                 while let Ok(file_entry) = self.rx.try_recv() {
+                    let mut files = self.file_tree_app.files.lock().unwrap();
                     if file_entry.path == base_dir {
-                        self.file_tree_app.files = file_entry.children;
+                        *files = file_entry.children;
                     } else {
-                        add_to_parent(
-                            &mut self.file_tree_app.files,
-                            file_entry.path.clone().parent().unwrap(),
-                            file_entry,
-                        );
+                        let parent_path = file_entry.path.parent().unwrap().to_path_buf();
+                        if !add_to_parent(&mut files, &parent_path, file_entry.clone()) {
+                            println!("Failed to add file entry to parent: {:?}", parent_path);
+                        }
                     }
                 }
-                FileTreeApp::render_tree(ui, &base_dir, &mut self.file_tree_app.files);
+                println!("Rendering tree: {:?}", *self.file_tree_app.files.lock().unwrap());
+                FileTreeApp::render_tree(ui, &base_dir, &mut self.file_tree_app.files.lock().unwrap());
             });
         });
 
@@ -77,9 +78,7 @@ impl FileTreeApp {
                     .path
                     .strip_prefix(base_dir)
                     .unwrap()
-                    .file_name()
-                    .unwrap()
-                    .to_string_lossy()
+                    .display()
                     .to_string();
                 if file.is_dir {
                     ui.collapsing(label, |ui| {

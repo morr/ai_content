@@ -6,11 +6,11 @@ use crate::walker::build_file_tree;
 use crossbeam_channel::Sender;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[derive(Default)]
 pub struct FileTreeApp {
-    pub files: Vec<FileEntry>,
+    pub files: Arc<Mutex<Vec<FileEntry>>>,
     pub base_dir: PathBuf,
     pub supported_extensions: HashMap<String, String>,
 }
@@ -22,16 +22,27 @@ impl FileTreeApp {
         let base_dir = current_dir.clone();
         let supported_extensions = get_supported_extensions();
 
-        let (files_tx, files_rx) = std::sync::mpsc::channel();
+        let files = Arc::new(Mutex::new(Vec::new()));
         let tx_clone = tx.clone();
+        let files_clone = Arc::clone(&files);
+
         thread::spawn(move || {
             let mut thread_files = vec![];
-            build_file_tree(&current_dir, &mut thread_files, &tx_clone);
-            files_tx.send(thread_files).unwrap();
+            if let Err(e) = build_file_tree(&current_dir, &mut thread_files, &tx_clone) {
+                eprintln!("Error building file tree: {}", e);
+            }
+            println!("Finished building file tree");
+            for file in &thread_files {
+                if let Err(e) = tx.send(file.clone()) {
+                    eprintln!("Error sending file entry: {}", e);
+                }
+            }
+            let mut files = files_clone.lock().unwrap();
+            *files = thread_files;
         });
 
-        let mut files = files_rx.recv().unwrap();
         if let Ok(saved_state) = load_config(&config_file) {
+            let mut files = files.lock().unwrap();
             apply_saved_state(&mut files, &saved_state);
         }
 
@@ -46,11 +57,13 @@ impl FileTreeApp {
         toggle_selection(file, selected);
     }
 
-    pub fn save_config(&self) -> std::io::Result<()> {
-        save_config(&self.files, &self.base_dir)
+    pub fn save_config(&self) -> anyhow::Result<()> {
+        let files = self.files.lock().unwrap();
+        save_config(&files, &self.base_dir).map_err(|e| anyhow::anyhow!(e))
     }
 
     pub fn calculate_selected_files_size(&self) -> u64 {
-        calculate_selected_files_size(&self.files)
+        let files = self.files.lock().unwrap();
+        calculate_selected_files_size(&files)
     }
 }

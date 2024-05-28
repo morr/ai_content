@@ -1,7 +1,8 @@
 use crate::entry::FileEntry;
+use anyhow::{Context, Result};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
-use std::fs::{self};
+use std::fs;
 use std::path::{Path, PathBuf};
 
 pub fn get_config_file_path(current_dir: &Path) -> PathBuf {
@@ -29,16 +30,18 @@ pub fn get_supported_extensions() -> HashMap<String, String> {
     .collect()
 }
 
-pub fn save_config(files: &[FileEntry], base_dir: &Path) -> std::io::Result<()> {
+pub fn save_config(files: &[FileEntry], base_dir: &Path) -> Result<()> {
     let selected_paths = FileEntry::collect_selected_paths(files);
-    let json = serde_json::to_string(&selected_paths)?;
+    let json =
+        serde_json::to_string(&selected_paths).context("Failed to serialize selected paths")?;
     let config_file = get_config_file_path(base_dir);
-    fs::write(config_file, json)
+    fs::write(config_file, json).context("Failed to write config file")
 }
 
-pub fn load_config(config_file: &Path) -> std::io::Result<Vec<PathBuf>> {
-    let data = fs::read_to_string(config_file)?;
-    let selected_paths: Vec<PathBuf> = serde_json::from_str(&data)?;
+pub fn load_config(config_file: &Path) -> Result<Vec<PathBuf>> {
+    let data = fs::read_to_string(config_file).context("Failed to read config file")?;
+    let selected_paths: Vec<PathBuf> =
+        serde_json::from_str(&data).context("Failed to deserialize config file")?;
     Ok(selected_paths)
 }
 

@@ -3,12 +3,14 @@ use crossbeam_channel::Sender;
 use ignore::{DirEntry, WalkBuilder};
 use std::cmp::Ordering;
 use std::path::Path;
+use std::io::Result;
 
-pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender<FileEntry>) {
+pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender<FileEntry>) -> Result<()> {
     let walker = WalkBuilder::new(base_path)
         .add_custom_ignore_filename(".gitignore")
         .build();
 
+    let mut directories: Vec<FileEntry> = vec![];
     let mut entries: Vec<FileEntry> = vec![];
 
     for entry in walker.flatten() {
@@ -27,22 +29,32 @@ pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender
         };
 
         if is_dir {
-            build_file_tree(&entry_path, &mut file_entry.children, tx);
+            build_file_tree(&entry_path, &mut file_entry.children, tx)?;
+            directories.push(file_entry.clone());
+            tx.send(file_entry).unwrap(); // Send directory first
+        } else {
+            entries.push(file_entry.clone());
         }
-
-        entries.push(file_entry.clone());
-        tx.send(file_entry).unwrap();
     }
 
+    directories.sort_unstable_by(compare_entries);
     entries.sort_unstable_by(compare_entries);
+
+    // Add all directories to the root
+    for directory in directories {
+        files.push(directory);
+    }
+
+    // Add all entries to their respective parent directories
     for entry in entries {
         let parent_path = entry.path.parent().unwrap().to_path_buf();
-        if parent_path == base_path {
-            files.push(entry);
-        } else {
-            add_to_parent(files, &parent_path, entry);
+        if !add_to_parent(files, &parent_path, entry.clone()) {
+            println!("Failed to add file entry to parent: {:?}", parent_path);
         }
+        tx.send(entry).unwrap();
     }
+
+    Ok(())
 }
 
 fn compare_entries(a: &FileEntry, b: &FileEntry) -> Ordering {
@@ -58,22 +70,20 @@ pub fn add_to_parent(
     parent_path: &Path,
     file_entry: FileEntry,
 ) -> bool {
+    println!("Trying to add to parent: {:?} -> {:?}", parent_path, file_entry.path);
     for file in files {
         if file.path == parent_path {
-            if !file
-                .children
-                .iter()
-                .any(|child| child.path == file_entry.path)
-            {
+            println!("Found parent: {:?}", parent_path);
+            if !file.children.iter().any(|child| child.path == file_entry.path) {
                 file.children.push(file_entry);
                 file.children.sort_unstable_by(compare_entries);
             }
             return true;
-        } else if file.is_dir && add_to_parent(&mut file.children, parent_path, file_entry.clone())
-        {
+        } else if file.is_dir && add_to_parent(&mut file.children, parent_path, file_entry.clone()) {
             return true;
         }
     }
+    println!("Parent not found for: {:?}", file_entry.path);
     false
 }
 

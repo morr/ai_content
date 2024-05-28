@@ -1,12 +1,15 @@
+use crate::app::FileTreeApp;
+use crate::entry::FileEntry;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use std::fs;
 use std::path::PathBuf;
-use crate::app::FileTreeApp;
-use crate::entry::FileEntry;
 
 impl FileTreeApp {
     fn get_code_block_language(&self, extension: &str) -> &str {
-        self.supported_extensions.get(extension).map(|s| s.as_str()).unwrap_or("")
+        self.supported_extensions
+            .get(extension)
+            .map(|s| s.as_str())
+            .unwrap_or("")
     }
 
     pub fn generate_text(&self, selected_files: &[PathBuf]) -> String {
@@ -34,13 +37,15 @@ impl FileTreeApp {
     }
 
     pub fn print_selected_files(&self) {
-        let selected_files = FileEntry::collect_selected_paths(&self.files);
+        let files = self.files.lock().unwrap();
+        let selected_files = FileEntry::collect_selected_paths(&files);
         let content = self.generate_text(&selected_files);
         println!("{}", content);
     }
 
     pub fn copy_selected_files_to_clipboard(&self) {
-        let selected_files = FileEntry::collect_selected_paths(&self.files);
+        let files = self.files.lock().unwrap();
+        let selected_files = FileEntry::collect_selected_paths(&files);
         let content = self.generate_text(&selected_files);
 
         let mut clipboard =
