@@ -2,7 +2,7 @@ use crate::entry::FileEntry;
 use crate::utils::is_excluded;
 use crossbeam_channel::Sender;
 use ignore::WalkBuilder;
-use log::info;
+use log::{info, warn};
 use std::path::Path;
 use std::sync::{Arc, RwLock};
 
@@ -10,6 +10,8 @@ pub fn build_file_tree(base_path: &Path, tx: &Sender<Arc<FileEntry>>) {
     let walker = WalkBuilder::new(base_path)
         .add_custom_ignore_filename(".gitignore")
         .build();
+
+    let mut file_count = 0;
 
     for entry in walker.flatten() {
         let entry_path = entry.path().to_path_buf();
@@ -29,7 +31,12 @@ pub fn build_file_tree(base_path: &Path, tx: &Sender<Arc<FileEntry>>) {
             selected: RwLock::new(false),   // Use RwLock for selected
         });
 
-        tx.send(file_entry).unwrap();
-    }
-}
+        if tx.send(file_entry).is_err() {
+            warn!("Failed to send file entry for: ./{}", relative_path.display());
+        }
 
+        file_count += 1;
+    }
+
+    info!("Total number of files found: {}", file_count);
+}
