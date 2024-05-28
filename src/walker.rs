@@ -3,6 +3,7 @@ use crate::filesystem::{add_to_parent, compare_entries};
 use crate::utils::is_excluded;
 use crossbeam_channel::Sender;
 use ignore::WalkBuilder;
+use log::info;
 use std::path::Path;
 
 pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender<FileEntry>) {
@@ -17,6 +18,8 @@ pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender
         if entry.path() == base_path || is_excluded(&entry) {
             continue;
         }
+
+        info!("Found file: {}", entry_path.display());
 
         let is_dir = entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
 

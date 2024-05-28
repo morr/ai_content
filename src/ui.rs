@@ -4,6 +4,7 @@ use crate::filesystem::add_to_parent;
 use crossbeam_channel::{unbounded, Receiver};
 use eframe::egui::{self, CentralPanel, CtxRef, ScrollArea, TopBottomPanel};
 use eframe::epi;
+use log::info;
 use std::path::PathBuf;
 
 pub struct App {
@@ -81,6 +82,9 @@ impl FileTreeApp {
                     .unwrap()
                     .to_string_lossy()
                     .to_string();
+
+                info!("Displaying file: {}", label);
+
                 if file.is_dir {
                     ui.collapsing(label, |ui| {
                         FileTreeApp::render_tree(ui, base_dir, &mut file.children);
