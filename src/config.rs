@@ -1,11 +1,9 @@
 use crate::entry::FileEntry;
-use serde_json;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use toml;
 
 pub fn get_config_file_path(current_dir: &Path) -> PathBuf {
     let mut hasher = Sha256::new();
@@ -20,7 +18,11 @@ pub fn load_supported_extensions() -> Result<HashMap<String, String>, Box<dyn st
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
     let config: toml::Value = toml::from_str(&contents)?;
-    let extensions = config.get("supported_extensions").unwrap().as_table().unwrap();
+    let extensions = config
+        .get("supported_extensions")
+        .unwrap()
+        .as_table()
+        .unwrap();
     let mut map = HashMap::new();
     for (key, value) in extensions {
         map.insert(key.clone(), value.as_str().unwrap().to_string());

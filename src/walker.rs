@@ -2,7 +2,7 @@ use crate::entry::FileEntry;
 use crossbeam_channel::Sender;
 use ignore::{DirEntry, WalkBuilder};
 use std::cmp::Ordering;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender<FileEntry>) {
     let walker = WalkBuilder::new(base_path)

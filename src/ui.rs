@@ -1,10 +1,10 @@
+use crate::app::FileTreeApp;
+use crate::entry::FileEntry;
+use crate::walker::add_to_parent;
 use crossbeam_channel::{unbounded, Receiver};
 use eframe::egui::{self, CentralPanel, CtxRef, ScrollArea, TopBottomPanel};
 use eframe::epi;
 use std::path::PathBuf;
-use crate::app::FileTreeApp;
-use crate::entry::FileEntry;
-use crate::walker::add_to_parent;
 
 pub struct App {
     file_tree_app: FileTreeApp,
@@ -37,7 +37,7 @@ impl epi::App for App {
                     } else {
                         add_to_parent(
                             &mut self.file_tree_app.files,
-                            &file_entry.path.clone().parent().unwrap(),
+                            file_entry.path.clone().parent().unwrap(),
                             file_entry,
                         );
                     }

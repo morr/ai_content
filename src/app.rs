@@ -5,7 +5,7 @@ use crate::entry::{calculate_selected_files_size, toggle_selection, FileEntry};
 use crate::walker::build_file_tree;
 use crossbeam_channel::Sender;
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::thread;
 
 #[derive(Default)]
