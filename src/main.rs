@@ -1,5 +1,5 @@
 use copypasta::{ClipboardContext, ClipboardProvider};
-use eframe::egui::{self, CentralPanel, CtxRef, TopBottomPanel};
+use eframe::egui::{self, CentralPanel, CtxRef, ScrollArea, TopBottomPanel};
 use eframe::{epi, run_native};
 use ignore::{DirEntry, WalkBuilder};
 use serde::{Deserialize, Serialize};
@@ -55,28 +55,26 @@ impl FileTreeApp {
 
         let mut entries: Vec<FileEntry> = vec![];
 
-        for result in walker {
-            if let Ok(entry) = result {
-                let entry_path = entry.path().to_path_buf();
-                if entry.path() == base_path || Self::is_excluded(&entry) {
-                    continue;
-                }
-
-                let is_dir = entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
-
-                let mut file_entry = FileEntry {
-                    path: entry_path.clone(),
-                    is_dir,
-                    children: vec![],
-                    selected: false,
-                };
-
-                if is_dir {
-                    Self::build_file_tree(&entry_path, &mut file_entry.children);
-                }
-
-                entries.push(file_entry);
+        for entry in walker.flatten() {
+            let entry_path = entry.path().to_path_buf();
+            if entry.path() == base_path || Self::is_excluded(&entry) {
+                continue;
             }
+
+            let is_dir = entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
+
+            let mut file_entry = FileEntry {
+                path: entry_path.clone(),
+                is_dir,
+                children: vec![],
+                selected: false,
+            };
+
+            if is_dir {
+                Self::build_file_tree(&entry_path, &mut file_entry.children);
+            }
+
+            entries.push(file_entry);
         }
 
         entries.sort_unstable_by(FileTreeApp::compare_entries);
@@ -138,7 +136,7 @@ impl FileTreeApp {
     }
 
     fn save_config(&self) -> std::io::Result<()> {
-        let selected_paths = self.collect_selected_paths(&self.files);
+        let selected_paths = Self::collect_selected_paths(&self.files);
         let json = serde_json::to_string(&selected_paths)?;
         let config_file = Self::get_config_file_path(&self.base_dir);
         fs::write(config_file, json)
@@ -150,15 +148,18 @@ impl FileTreeApp {
         Ok(selected_paths)
     }
 
-    fn collect_selected_paths(&self, files: &[FileEntry]) -> Vec<PathBuf> {
-        let mut selected_paths = Vec::new();
-        for file in files {
-            if file.selected {
-                selected_paths.push(file.path.clone());
-            }
-            selected_paths.extend(self.collect_selected_paths(&file.children));
-        }
-        selected_paths
+    fn collect_selected_paths(files: &[FileEntry]) -> Vec<PathBuf> {
+        files
+            .iter()
+            .flat_map(|file| {
+                let mut paths = Vec::new();
+                if file.selected {
+                    paths.push(file.path.clone());
+                }
+                paths.extend(Self::collect_selected_paths(&file.children));
+                paths
+            })
+            .collect()
     }
 
     fn apply_saved_state(files: &mut [FileEntry], selected_paths: &[PathBuf]) {
@@ -171,7 +172,7 @@ impl FileTreeApp {
     }
 
     fn print_selected_files(&self) {
-        let selected_files = self.collect_selected_paths(&self.files);
+        let selected_files = Self::collect_selected_paths(&self.files);
         for path in selected_files {
             if let Ok(content) = fs::read_to_string(&path) {
                 let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
@@ -192,7 +193,7 @@ impl FileTreeApp {
     }
 
     fn copy_selected_files_to_clipboard(&self) {
-        let selected_files = self.collect_selected_paths(&self.files);
+        let selected_files = Self::collect_selected_paths(&self.files);
         let mut clipboard_content = String::new();
 
         for path in selected_files {
@@ -224,7 +225,7 @@ impl FileTreeApp {
     }
 
     fn calculate_selected_files_size(&self) -> u64 {
-        let selected_files = self.collect_selected_paths(&self.files);
+        let selected_files = Self::collect_selected_paths(&self.files);
         let mut total_size = 0;
 
         for path in selected_files {
@@ -256,7 +257,9 @@ impl epi::App for FileTreeApp {
         });
 
         CentralPanel::default().show(ctx, |ui| {
-            FileTreeApp::render_tree(ui, &base_dir, &mut self.files);
+            ScrollArea::vertical().show(ui, |ui| {
+                FileTreeApp::render_tree(ui, &base_dir, &mut self.files);
+            });
         });
 
         if self.save_config().is_err() {
