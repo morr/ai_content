@@ -1,13 +1,11 @@
 use crate::entry::FileEntry;
-use sha2::{Digest, Sha256};
+use crate::utils::hash_current_dir;
 use std::collections::HashMap;
-use std::fs::{self};
+use std::fs;
 use std::path::{Path, PathBuf};
 
 pub fn get_config_file_path(current_dir: &Path) -> PathBuf {
-    let mut hasher = Sha256::new();
-    hasher.update(current_dir.to_string_lossy().as_bytes());
-    let hash = format!("{:x}", hasher.finalize());
+    let hash = hash_current_dir(current_dir);
     let file_name = format!(".ai_content.{}.json", hash);
     PathBuf::from("/tmp").join(file_name)
 }

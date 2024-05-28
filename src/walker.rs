@@ -1,7 +1,8 @@
 use crate::entry::FileEntry;
+use crate::filesystem::{add_to_parent, compare_entries};
+use crate::utils::is_excluded;
 use crossbeam_channel::Sender;
-use ignore::{DirEntry, WalkBuilder};
-use std::cmp::Ordering;
+use ignore::WalkBuilder;
 use std::path::Path;
 
 pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender<FileEntry>) {
@@ -43,43 +44,4 @@ pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender
             add_to_parent(files, &parent_path, entry);
         }
     }
-}
-
-fn compare_entries(a: &FileEntry, b: &FileEntry) -> Ordering {
-    match (a.is_dir, b.is_dir) {
-        (true, false) => Ordering::Less,
-        (false, true) => Ordering::Greater,
-        _ => a.path.cmp(&b.path),
-    }
-}
-
-pub fn add_to_parent(
-    files: &mut Vec<FileEntry>,
-    parent_path: &Path,
-    file_entry: FileEntry,
-) -> bool {
-    for file in files {
-        if file.path == parent_path {
-            if !file
-                .children
-                .iter()
-                .any(|child| child.path == file_entry.path)
-            {
-                file.children.push(file_entry);
-                file.children.sort_unstable_by(compare_entries);
-            }
-            return true;
-        } else if file.is_dir && add_to_parent(&mut file.children, parent_path, file_entry.clone())
-        {
-            return true;
-        }
-    }
-    false
-}
-
-fn is_excluded(entry: &DirEntry) -> bool {
-    entry
-        .path()
-        .components()
-        .any(|comp| comp.as_os_str().to_str() == Some(".git"))
 }

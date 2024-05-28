@@ -1,8 +1,10 @@
 mod app;
 mod config;
 mod entry;
+mod filesystem;
 mod text_generator;
 mod ui;
+mod utils;
 mod walker;
 
 use eframe::run_native;

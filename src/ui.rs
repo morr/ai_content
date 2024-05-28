@@ -1,6 +1,6 @@
 use crate::app::FileTreeApp;
 use crate::entry::FileEntry;
-use crate::walker::add_to_parent;
+use crate::filesystem::add_to_parent;
 use crossbeam_channel::{unbounded, Receiver};
 use eframe::egui::{self, CentralPanel, CtxRef, ScrollArea, TopBottomPanel};
 use eframe::epi;

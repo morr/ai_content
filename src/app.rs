@@ -6,6 +6,7 @@ use crate::walker::build_file_tree;
 use crossbeam_channel::Sender;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::mpsc;
 use std::thread;
 
 #[derive(Default)]
@@ -22,7 +23,7 @@ impl FileTreeApp {
         let base_dir = current_dir.clone();
         let supported_extensions = get_supported_extensions();
 
-        let (files_tx, files_rx) = std::sync::mpsc::channel();
+        let (files_tx, files_rx) = mpsc::channel();
         let tx_clone = tx.clone();
         thread::spawn(move || {
             let mut thread_files = vec![];
