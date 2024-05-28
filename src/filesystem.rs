@@ -13,7 +13,6 @@ use std::thread;
 #[derive(Default)]
 pub struct FileTreeApp {
     pub files: Vec<FileEntry>,
-    pub base_dir: PathBuf,
     pub supported_extensions: HashMap<String, String>,
 }
 
@@ -30,7 +29,6 @@ impl FileTreeApp {
         let current_dir = std::env::current_dir().expect("Failed to get current directory");
         let config_file = Self::get_config_file_path(&current_dir);
         let mut files = vec![];
-        let base_dir = current_dir.clone();
         let supported_extensions = Self::load_supported_extensions().expect("Failed to load supported extensions");
 
         let tx_clone = tx.clone();
@@ -38,7 +36,7 @@ impl FileTreeApp {
             let mut thread_files = vec![];
             Self::build_file_tree(&current_dir, &mut thread_files, &tx_clone);
             tx.send(FileEntry {
-                path: current_dir,
+                path: PathBuf::new(),
                 is_dir: true,
                 children: thread_files.clone(),
                 selected: false,
@@ -49,7 +47,7 @@ impl FileTreeApp {
             Self::apply_saved_state(&mut files, &saved_state);
         }
 
-        Self { files, base_dir, supported_extensions }
+        Self { files, supported_extensions }
     }
 
     fn get_config_file_path(current_dir: &Path) -> PathBuf {
@@ -87,9 +85,10 @@ impl FileTreeApp {
             }
 
             let is_dir = entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
+            let relative_path = entry_path.strip_prefix(base_path).unwrap().to_path_buf();
 
             let mut file_entry = FileEntry {
-                path: entry_path.clone(),
+                path: relative_path.clone(),
                 is_dir,
                 children: vec![],
                 selected: false,
@@ -106,7 +105,7 @@ impl FileTreeApp {
         entries.sort_unstable_by(FileTreeApp::compare_entries);
         for entry in entries {
             let parent_path = entry.path.parent().unwrap().to_path_buf();
-            if parent_path == base_path {
+            if parent_path == PathBuf::new() {
                 files.push(entry);
             } else {
                 Self::add_to_parent(files, &parent_path, entry);
@@ -164,7 +163,7 @@ impl FileTreeApp {
     pub fn save_config(&self) -> std::io::Result<()> {
         let selected_paths = Self::collect_selected_paths(&self.files);
         let json = serde_json::to_string(&selected_paths)?;
-        let config_file = Self::get_config_file_path(&self.base_dir);
+        let config_file = Self::get_config_file_path(&std::env::current_dir().unwrap());
         fs::write(config_file, json)
     }
 
@@ -205,4 +204,3 @@ impl FileTreeApp {
             / 1024 // Convert to kilobytes
     }
 }
-

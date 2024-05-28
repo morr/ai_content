@@ -2,7 +2,7 @@ use crate::entry::FileEntry;
 use crossbeam_channel::Sender;
 use ignore::{DirEntry, WalkBuilder};
 use std::cmp::Ordering;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender<FileEntry>) {
     let walker = WalkBuilder::new(base_path)
@@ -18,9 +18,12 @@ pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender
         }
 
         let is_dir = entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
+        let relative_path = entry_path.strip_prefix(base_path).unwrap().to_path_buf();
+
+        println!("Found: {:?}", relative_path); // Debug output
 
         let mut file_entry = FileEntry {
-            path: entry_path.clone(),
+            path: relative_path.clone(),
             is_dir,
             children: vec![],
             selected: false,
@@ -36,9 +39,11 @@ pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender
 
     entries.sort_unstable_by(compare_entries);
     for entry in entries {
-        let parent_path = entry.path.parent().unwrap().to_path_buf();
-        if parent_path == base_path {
-            files.push(entry);
+        let parent_path = entry.path.parent().unwrap_or_else(|| Path::new("")).to_path_buf();
+        if parent_path == PathBuf::new() {
+            if !files.iter().any(|f| f.path == entry.path) {
+                files.push(entry);
+            }
         } else {
             add_to_parent(files, &parent_path, entry);
         }
@@ -65,6 +70,7 @@ pub fn add_to_parent(
                 .iter()
                 .any(|child| child.path == file_entry.path)
             {
+                println!("Adding child {:?} to parent {:?}", file_entry.path, file.path); // Debug output
                 file.children.push(file_entry);
                 file.children.sort_unstable_by(compare_entries);
             }
@@ -83,3 +89,4 @@ fn is_excluded(entry: &DirEntry) -> bool {
         .components()
         .any(|comp| comp.as_os_str().to_str() == Some(".git"))
 }
+
