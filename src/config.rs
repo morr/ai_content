@@ -1,8 +1,7 @@
 use crate::entry::FileEntry;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
-use std::fs::{self, File};
-use std::io::Read;
+use std::fs::{self};
 use std::path::{Path, PathBuf};
 
 pub fn get_config_file_path(current_dir: &Path) -> PathBuf {
@@ -13,21 +12,21 @@ pub fn get_config_file_path(current_dir: &Path) -> PathBuf {
     PathBuf::from("/tmp").join(file_name)
 }
 
-pub fn load_supported_extensions() -> Result<HashMap<String, String>, Box<dyn std::error::Error>> {
-    let mut file = File::open("config.toml")?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-    let config: toml::Value = toml::from_str(&contents)?;
-    let extensions = config
-        .get("supported_extensions")
-        .unwrap()
-        .as_table()
-        .unwrap();
-    let mut map = HashMap::new();
-    for (key, value) in extensions {
-        map.insert(key.clone(), value.as_str().unwrap().to_string());
-    }
-    Ok(map)
+pub fn get_supported_extensions() -> HashMap<String, String> {
+    [
+        ("rs", "rust"),
+        ("json", "json"),
+        ("toml", "toml"),
+        ("js", "javascript"),
+        ("rb", "ruby"),
+        ("slim", "slim"),
+        ("vue", "vue"),
+        ("md", "markdown"),
+    ]
+    .iter()
+    .cloned()
+    .map(|(k, v)| (k.to_string(), v.to_string()))
+    .collect()
 }
 
 pub fn save_config(files: &[FileEntry], base_dir: &Path) -> std::io::Result<()> {

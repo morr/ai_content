@@ -1,5 +1,5 @@
 use crate::config::{
-    apply_saved_state, get_config_file_path, load_config, load_supported_extensions, save_config,
+    apply_saved_state, get_config_file_path, get_supported_extensions, load_config, save_config,
 };
 use crate::entry::{calculate_selected_files_size, toggle_selection, FileEntry};
 use crate::walker::build_file_tree;
@@ -20,8 +20,7 @@ impl FileTreeApp {
         let current_dir = std::env::current_dir().expect("Failed to get current directory");
         let config_file = get_config_file_path(&current_dir);
         let base_dir = current_dir.clone();
-        let supported_extensions =
-            load_supported_extensions().expect("Failed to load supported extensions");
+        let supported_extensions = get_supported_extensions();
 
         let (files_tx, files_rx) = std::sync::mpsc::channel();
         let tx_clone = tx.clone();
