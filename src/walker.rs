@@ -2,7 +2,7 @@ use crate::entry::FileEntry;
 use crate::filesystem::{add_to_parent, compare_entries};
 use crate::utils::is_excluded;
 use crossbeam_channel::Sender;
-use ignore::WalkBuilder;
+use ignore::WalkBuilder; // Add this import statement
 use log::info;
 use std::path::Path;
 
