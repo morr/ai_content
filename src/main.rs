@@ -238,6 +238,32 @@ impl FileTreeApp {
             .sum::<u64>()
             / 1024 // Convert to kilobytes
     }
+
+    fn render_tree(ui: &mut egui::Ui, base_dir: &PathBuf, files: &mut [FileEntry]) {
+        for file in files {
+            ui.horizontal(|ui| {
+                let mut selected = file.selected;
+                if ui.checkbox(&mut selected, "").clicked() {
+                    FileTreeApp::toggle_selection(file, selected);
+                }
+                let label = file
+                    .path
+                    .strip_prefix(base_dir)
+                    .unwrap()
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_string();
+                if file.is_dir {
+                    ui.collapsing(label, |ui| {
+                        FileTreeApp::render_tree(ui, base_dir, &mut file.children);
+                    });
+                } else {
+                    ui.label(label);
+                }
+            });
+        }
+    }
 }
 
 impl epi::App for FileTreeApp {
@@ -271,33 +297,5 @@ impl epi::App for FileTreeApp {
 
     fn name(&self) -> &str {
         "File Tree Viewer"
-    }
-}
-
-impl FileTreeApp {
-    fn render_tree(ui: &mut egui::Ui, base_dir: &PathBuf, files: &mut [FileEntry]) {
-        for file in files {
-            ui.horizontal(|ui| {
-                let mut selected = file.selected;
-                if ui.checkbox(&mut selected, "").clicked() {
-                    FileTreeApp::toggle_selection(file, selected);
-                }
-                let label = file
-                    .path
-                    .strip_prefix(base_dir)
-                    .unwrap()
-                    .file_name()
-                    .unwrap()
-                    .to_string_lossy()
-                    .to_string();
-                if file.is_dir {
-                    ui.collapsing(label, |ui| {
-                        FileTreeApp::render_tree(ui, base_dir, &mut file.children);
-                    });
-                } else {
-                    ui.label(label);
-                }
-            });
-        }
     }
 }
