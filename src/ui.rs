@@ -1,7 +1,7 @@
 use crate::app::FileTreeApp;
 use crate::entry::FileEntry;
 use crossbeam_channel::{unbounded, Receiver};
-use eframe::egui::{CentralPanel, CtxRef, TopBottomPanel};
+use eframe::egui::{CentralPanel, CtxRef, ScrollArea, TopBottomPanel};
 use eframe::epi;
 use std::sync::Arc;
 
@@ -13,6 +13,11 @@ pub struct App {
 
 impl epi::App for App {
     fn update(&mut self, ctx: &CtxRef, _frame: &epi::Frame) {
+        // Receive FileEntry instances from the channel
+        while let Ok(file_entry) = self.rx.try_recv() {
+            self.received_files.push(file_entry);
+        }
+
         TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 if ui.button("PRINT").clicked() {
@@ -27,21 +32,21 @@ impl epi::App for App {
         });
 
         CentralPanel::default().show(ctx, |ui| {
-            // Receive FileEntry instances from the channel
-            while let Ok(file_entry) = self.rx.try_recv() {
-                self.received_files.push(file_entry);
-            }
-
-            // Render received FileEntry instances
-            for file in &self.received_files {
-                let label = file.path.to_string_lossy().to_string();
-                ui.label(label);
-            }
+            ScrollArea::vertical().show(ui, |ui| {
+                // Render received FileEntry instances
+                for file in &self.received_files {
+                    let label = file.path.to_string_lossy().to_string();
+                    ui.label(label);
+                }
+            });
         });
 
         if let Err(e) = self.file_tree_app.save_config() {
             eprintln!("Failed to save configuration: {}", e);
         }
+
+        // Request a repaint to keep the UI responsive
+        ctx.request_repaint();
     }
 
     fn name(&self) -> &str {
@@ -61,4 +66,3 @@ impl App {
         }
     }
 }
-

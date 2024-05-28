@@ -4,7 +4,7 @@ use crossbeam_channel::Sender;
 use ignore::WalkBuilder;
 use log::info;
 use std::path::Path;
-use std::sync::{Arc, RwLock};  // Added RwLock import
+use std::sync::{Arc, RwLock};
 
 pub fn build_file_tree(base_path: &Path, tx: &Sender<Arc<FileEntry>>) {
     let walker = WalkBuilder::new(base_path)
