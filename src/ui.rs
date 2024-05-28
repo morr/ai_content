@@ -33,7 +33,7 @@ impl epi::App for App {
             ScrollArea::vertical().show(ui, |ui| {
                 while let Ok(file_entry) = self.rx.try_recv() {
                     let mut files = self.file_tree_app.files.lock().unwrap();
-                    if file_entry.path == base_dir {
+                    if file_entry.path == base_dir || file_entry.path.parent() == Some(&base_dir) {
                         *files = file_entry.children;
                     } else {
                         let parent_path = file_entry.path.parent().unwrap().to_path_buf();
