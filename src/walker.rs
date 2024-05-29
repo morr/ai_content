@@ -1,9 +1,10 @@
 use crate::entry::FileEntry;
 use crate::utils::is_excluded;
 use crossbeam_channel::Sender;
-use ignore::WalkBuilder; // Add this import statement
+use ignore::WalkBuilder;
 use log::info;
-use std::path::Path;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
 pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender<FileEntry>) {
     let walker = WalkBuilder::new(base_path)
@@ -11,6 +12,7 @@ pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender
         .build();
 
     let mut entries: Vec<FileEntry> = vec![];
+    let mut processed_dirs: HashSet<PathBuf> = HashSet::new();
 
     for entry in walker.flatten() {
         let entry_path = entry.path().to_path_buf();
@@ -18,9 +20,14 @@ pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender
             continue;
         }
 
-        info!("Found file: {}", entry_path.display());
-
         let is_dir = entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
+
+        // Check if current path is contained within any of the already processed directories
+        if processed_dirs.iter().any(|dir| entry_path.starts_with(dir)) {
+            continue;
+        }
+
+        info!("Found file: {}", entry_path.display());
 
         let mut file_entry = FileEntry {
             path: entry_path.clone(),
@@ -30,6 +37,7 @@ pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender
         };
 
         if is_dir {
+            processed_dirs.insert(entry_path.clone());
             build_file_tree(&entry_path, &mut file_entry.children, tx);
         }
 
@@ -79,4 +87,3 @@ pub fn add_to_parent(
     }
     false
 }
-
