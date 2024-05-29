@@ -16,3 +16,6 @@ toml = "0.8.13"
 crossbeam-channel = "0.5"
 log = "0.4"
 env_logger = "0.10"
+
+[package.metadata.scripts]
+post-build = ["./post_build.sh"]

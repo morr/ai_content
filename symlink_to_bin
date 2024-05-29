@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -e
+
+TARGET_DIR=${CARGO_TARGET_DIR:-target}
+DEBUG_PATH="$TARGET_DIR/debug/ai_content"
+HOME_DIR="$HOME"
+BIN_DIR="$HOME_DIR/bin"
+COPY_PATH="$BIN_DIR/ai_content"
+
+if [ ! -d "$BIN_DIR" ]; then
+  mkdir -p "$BIN_DIR"
+fi
+
+if [ -f "$COPY_PATH" ]; then
+  rm -f "$COPY_PATH"
+fi
+
+cp "$DEBUG_PATH" "$COPY_PATH"
+echo "Executable copied to $COPY_PATH"

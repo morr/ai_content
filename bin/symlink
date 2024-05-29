@@ -1,8 +1,0 @@
-#!/usr/bin/env zsh
-
-# Exit the script on any error
-set -e
-
-cargo build
-rm -rf ~/bin/ai_content
-ln target/debug/ai_content ~/bin/
