@@ -31,6 +31,7 @@ impl epi::App for App {
 
         CentralPanel::default().show(ctx, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
+                ui.set_width(ui.available_width());
                 while let Ok(file_entry) = self.rx.try_recv() {
                     if file_entry.path == base_dir {
                         self.file_tree_app.files = file_entry.children;
@@ -66,6 +67,15 @@ impl App {
 }
 
 impl FileTreeApp {
+    fn is_any_child_selected(file: &FileEntry) -> bool {
+        if file.selected {
+            return true;
+        }
+        file.children
+            .iter()
+            .any(FileTreeApp::is_any_child_selected)
+    }
+
     pub fn render_tree(ui: &mut egui::Ui, base_dir: &PathBuf, files: &mut [FileEntry]) {
         for file in files {
             ui.horizontal(|ui| {
@@ -82,9 +92,12 @@ impl FileTreeApp {
                     .to_string_lossy()
                     .to_string();
                 if file.is_dir {
-                    ui.collapsing(label, |ui| {
-                        FileTreeApp::render_tree(ui, base_dir, &mut file.children);
-                    });
+                    let is_expanded = FileTreeApp::is_any_child_selected(file);
+                    egui::CollapsingHeader::new(label)
+                        .default_open(is_expanded)
+                        .show(ui, |ui| {
+                            FileTreeApp::render_tree(ui, base_dir, &mut file.children);
+                        });
                 } else {
                     ui.label(label);
                 }
