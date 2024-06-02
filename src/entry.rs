@@ -1,3 +1,4 @@
+use crate::utils::collect_selected_paths;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -11,22 +12,6 @@ pub struct FileEntry {
     pub selected: bool,
 }
 
-impl FileEntry {
-    pub fn collect_selected_paths(files: &[FileEntry]) -> Vec<PathBuf> {
-        files
-            .iter()
-            .flat_map(|file| {
-                let mut paths = Vec::new();
-                if file.selected {
-                    paths.push(file.path.clone());
-                }
-                paths.extend(FileEntry::collect_selected_paths(&file.children));
-                paths
-            })
-            .collect()
-    }
-}
-
 pub fn toggle_selection(file: &mut FileEntry, selected: bool) {
     if file.selected != selected {
         info!(
@@ -36,13 +21,13 @@ pub fn toggle_selection(file: &mut FileEntry, selected: bool) {
         );
         file.selected = selected;
         for child in &mut file.children {
-            toggle_selection(child, selected);
+            child.selected = selected;
         }
     }
 }
 
 pub fn calculate_selected_files_size(files: &[FileEntry]) -> u64 {
-    FileEntry::collect_selected_paths(files)
+    collect_selected_paths(files)
         .iter()
         .filter_map(|path| fs::metadata(path).ok().map(|metadata| metadata.len()))
         .sum()

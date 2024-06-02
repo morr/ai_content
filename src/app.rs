@@ -1,7 +1,6 @@
-use crate::config::{
-    apply_saved_state, get_config_file_path, get_supported_extensions, load_config, save_config,
-};
+use crate::config::{get_config_file_path, get_supported_extensions, load_config, save_config};
 use crate::entry::{calculate_selected_files_size, toggle_selection, FileEntry};
+use crate::utils::apply_saved_state;
 use crate::walker::build_file_tree;
 use crossbeam_channel::Sender;
 use std::collections::HashMap;
@@ -46,9 +45,7 @@ impl FileTreeApp {
     }
 
     pub fn toggle_selection(file: &mut FileEntry, selected: bool) {
-        if file.selected != selected {
-            toggle_selection(file, selected);
-        }
+        toggle_selection(file, selected);
     }
 
     pub fn save_config(&self) -> std::io::Result<()> {

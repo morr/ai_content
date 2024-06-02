@@ -1,26 +1,19 @@
 use crate::app::FileTreeApp;
-use crate::entry::FileEntry;
+use crate::utils::{collect_selected_paths, get_code_block_language};
 use copypasta::{ClipboardContext, ClipboardProvider};
 use std::fs;
 use std::path::PathBuf;
 
 impl FileTreeApp {
-    fn get_code_block_language(&self, extension: &str) -> &str {
-        self.supported_extensions
-            .get(extension)
-            .map(|s| s.as_str())
-            .unwrap_or("")
-    }
-
     pub fn generate_text(&self, selected_files: &[PathBuf]) -> String {
         let mut content = String::new();
 
         for path in selected_files {
             if let Ok(file_content) = fs::read_to_string(path) {
                 let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
-                let code_block_lang = self.get_code_block_language(extension);
+                let code_block_lang = get_code_block_language(&self.supported_extensions, extension);
 
-                let relative_path = path.strip_prefix(&self.base_dir).unwrap();
+                let relative_path = path.strip_prefix(&self.base_dir).unwrap_or(path);
                 content.push_str(&format!(
                     "===== Start: ./{} =====\n",
                     relative_path.display()
@@ -37,13 +30,13 @@ impl FileTreeApp {
     }
 
     pub fn print_selected_files(&self) {
-        let selected_files = FileEntry::collect_selected_paths(&self.files);
+        let selected_files = collect_selected_paths(&self.files);
         let content = self.generate_text(&selected_files);
         println!("{}", content);
     }
 
     pub fn copy_selected_files_to_clipboard(&self) {
-        let selected_files = FileEntry::collect_selected_paths(&self.files);
+        let selected_files = collect_selected_paths(&self.files);
         let content = self.generate_text(&selected_files);
 
         let mut clipboard =
