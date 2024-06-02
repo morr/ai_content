@@ -98,7 +98,11 @@ impl FileTreeApp {
                     FileTreeApp::toggle_selection(file, selected);
                 }
                 let label = match file.path.strip_prefix(base_dir) {
-                    Ok(p) => p.file_name().unwrap_or_else(|| file.path.as_os_str()).to_string_lossy().to_string(),
+                    Ok(p) => p
+                        .file_name()
+                        .unwrap_or_else(|| file.path.as_os_str())
+                        .to_string_lossy()
+                        .to_string(),
                     Err(_) => file.path.to_string_lossy().to_string(),
                 };
                 if file.is_dir {

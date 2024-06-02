@@ -1,12 +1,15 @@
+use crate::app::FileTreeApp;
+use crate::entry::FileEntry;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use std::fs;
 use std::path::PathBuf;
-use crate::app::FileTreeApp;
-use crate::entry::FileEntry;
 
 impl FileTreeApp {
     fn get_code_block_language(&self, extension: &str) -> &str {
-        self.supported_extensions.get(extension).map(|s| s.as_str()).unwrap_or("")
+        self.supported_extensions
+            .get(extension)
+            .map(|s| s.as_str())
+            .unwrap_or("")
     }
 
     pub fn generate_text(&self, selected_files: &[PathBuf]) -> String {

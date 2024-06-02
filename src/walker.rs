@@ -6,7 +6,11 @@ use log::info;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender<FileEntry>) {
+pub fn build_file_tree(
+    base_path: &Path,
+    files: &mut Vec<FileEntry>,
+    tx: &Sender<FileEntry>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let walker = WalkBuilder::new(base_path)
         .add_custom_ignore_filename(".gitignore")
         .build();
@@ -38,11 +42,11 @@ pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender
 
         if is_dir {
             processed_dirs.insert(entry_path.clone());
-            build_file_tree(&entry_path, &mut file_entry.children, tx);
+            build_file_tree(&entry_path, &mut file_entry.children, tx)?;
         }
 
         entries.push(file_entry.clone());
-        tx.send(file_entry).unwrap();
+        tx.send(file_entry)?;
     }
 
     entries.sort_unstable_by(compare_entries);
@@ -54,6 +58,8 @@ pub fn build_file_tree(base_path: &Path, files: &mut Vec<FileEntry>, tx: &Sender
             add_to_parent(files, &parent_path, entry);
         }
     }
+
+    Ok(())
 }
 
 pub fn compare_entries(a: &FileEntry, b: &FileEntry) -> std::cmp::Ordering {

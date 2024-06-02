@@ -27,11 +27,11 @@ impl FileTreeApp {
         let tx_clone = tx.clone();
         thread::spawn(move || {
             let mut thread_files = vec![];
-            build_file_tree(&current_dir, &mut thread_files, &tx_clone);
+            build_file_tree(&current_dir, &mut thread_files, &tx_clone).expect("Failed to build file tree");
             files_tx.send(thread_files).unwrap();
         });
 
-        let mut files = files_rx.recv().unwrap();
+        let mut files = files_rx.recv().expect("Failed to receive files from thread");
         if let Ok(saved_state) = load_config(&config_file) {
             apply_saved_state(&mut files, &saved_state);
         }
