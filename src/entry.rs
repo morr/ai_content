@@ -1,7 +1,7 @@
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use log::info;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileEntry {
@@ -34,10 +34,10 @@ pub fn toggle_selection(file: &mut FileEntry, selected: bool) {
             file.path.display(),
             selected
         );
-    }
-    file.selected = selected;
-    for child in &mut file.children {
-        toggle_selection(child, selected);
+        file.selected = selected;
+        for child in &mut file.children {
+            toggle_selection(child, selected);
+        }
     }
 }
 
@@ -45,6 +45,5 @@ pub fn calculate_selected_files_size(files: &[FileEntry]) -> u64 {
     FileEntry::collect_selected_paths(files)
         .iter()
         .filter_map(|path| fs::metadata(path).ok().map(|metadata| metadata.len()))
-        .sum::<u64>()
-        / 1024 // Convert to kilobytes
+        .sum()
 }

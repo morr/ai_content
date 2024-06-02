@@ -6,7 +6,6 @@ use crate::walker::build_file_tree;
 use crossbeam_channel::Sender;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::mpsc;
 use std::thread;
 
 #[derive(Default)]
@@ -23,15 +22,18 @@ impl FileTreeApp {
         let base_dir = current_dir.clone();
         let supported_extensions = get_supported_extensions();
 
-        let (files_tx, files_rx) = mpsc::channel();
         let tx_clone = tx.clone();
-        thread::spawn(move || {
+        let handle = thread::spawn(move || {
             let mut thread_files = vec![];
-            build_file_tree(&current_dir, &mut thread_files, &tx_clone).expect("Failed to build file tree");
-            files_tx.send(thread_files).unwrap();
+            if let Err(e) = build_file_tree(&current_dir, &mut thread_files, &tx_clone) {
+                eprintln!("Failed to build file tree: {}", e);
+            }
+            thread_files
         });
 
-        let mut files = files_rx.recv().expect("Failed to receive files from thread");
+        let files = handle.join().expect("Thread panicked");
+
+        let mut files = files;
         if let Ok(saved_state) = load_config(&config_file) {
             apply_saved_state(&mut files, &saved_state);
         }
@@ -44,7 +46,9 @@ impl FileTreeApp {
     }
 
     pub fn toggle_selection(file: &mut FileEntry, selected: bool) {
-        toggle_selection(file, selected);
+        if file.selected != selected {
+            toggle_selection(file, selected);
+        }
     }
 
     pub fn save_config(&self) -> std::io::Result<()> {

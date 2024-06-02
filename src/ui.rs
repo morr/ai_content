@@ -25,7 +25,7 @@ impl epi::App for App {
                     self.file_tree_app.copy_selected_files_to_clipboard();
                 }
                 let total_size = self.file_tree_app.calculate_selected_files_size();
-                ui.label(format!("Total size: {} KB", total_size));
+                ui.label(format!("Total size: {} KB", total_size / 1024));
             });
         });
 
