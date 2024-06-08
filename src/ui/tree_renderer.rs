@@ -1,4 +1,4 @@
-use crate::entry::{FileEntry, toggle_selection, update_parent_selection, has_unselected_child};
+use crate::entry::{FileEntry, toggle_selection, update_selection_state, has_unselected_child};
 use eframe::egui::{self, Ui};
 use std::path::PathBuf;
 
@@ -8,7 +8,7 @@ pub fn render_tree(ui: &mut Ui, base_dir: &PathBuf, files: &mut [FileEntry]) {
             let mut selected = file.selected;
             if ui.checkbox(&mut selected, "").clicked() {
                 toggle_selection(file, selected);
-                update_parent_selection(file);
+                update_selection_state(file); // This ensures the parent selection state is updated.
             }
             let label = match file.path.strip_prefix(base_dir) {
                 Ok(p) => p
