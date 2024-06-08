@@ -49,3 +49,10 @@ pub fn get_code_block_language<'a>(
         .map(|s| s.as_str())
         .unwrap_or("")
 }
+
+pub fn calculate_selected_files_size(files: &[FileEntry]) -> u64 {
+    collect_selected_paths(files)
+        .iter()
+        .filter_map(|path| std::fs::metadata(path).ok().map(|metadata| metadata.len()))
+        .sum()
+}

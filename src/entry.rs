@@ -1,7 +1,6 @@
 use log::info;
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileEntry {
@@ -11,38 +10,26 @@ pub struct FileEntry {
     pub selected: bool,
 }
 
-pub fn toggle_selection(file: &mut FileEntry, selected: bool) {
-    if file.selected != selected {
-        info!(
-            "File selection changed: {} -> {}",
-            file.path.display(),
-            selected
-        );
-        file.selected = selected;
-        for child in &mut file.children {
-            toggle_selection(child, selected);
+pub fn update_selection_recursive(files: &mut [FileEntry], path: &Path, selected: Option<bool>) -> bool {
+    let mut any_selected = false;
+
+    for file in files.iter_mut() {
+        if file.path == *path {
+            if let Some(selected) = selected {
+                file.selected = selected;
+                info!("File selection changed: {} -> {}", file.path.display(), selected);
+                let children_paths: Vec<PathBuf> = file.children.iter().map(|c| c.path.clone()).collect();
+                for child_path in &children_paths {
+                    update_selection_recursive(&mut file.children, child_path, Some(selected));
+                }
+            }
         }
+        if file.is_dir {
+            any_selected |= update_selection_recursive(&mut file.children, path, selected);
+        }
+        any_selected |= file.selected;
     }
-}
 
-pub fn calculate_selected_files_size(files: &[FileEntry]) -> u64 {
-    crate::utils::collect_selected_paths(files)
-        .iter()
-        .filter_map(|path| fs::metadata(path).ok().map(|metadata| metadata.len()))
-        .sum()
-}
-
-pub fn update_selection_state(file: &mut FileEntry) -> bool {
-    info!("update_selection_state: {}", file.path.display());
-
-    let mut any_selected = file.selected;
-    for child in &mut file.children {
-        any_selected |= update_selection_state(child);
-    }
-    if !file.is_dir {
-        return file.selected;
-    }
-    file.selected = any_selected;
     any_selected
 }
 
