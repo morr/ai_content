@@ -17,7 +17,7 @@ pub fn is_excluded(entry: &DirEntry) -> bool {
         .any(|comp| comp.as_os_str().to_str() == Some(".git"))
 }
 
-pub fn collect_selected_paths(files: &[FileEntry]) -> Vec<PathBuf> {
+pub fn collect_selected_paths(files: &[Box<FileEntry>]) -> Vec<PathBuf> {
     files
         .iter()
         .flat_map(|file| {
@@ -31,7 +31,7 @@ pub fn collect_selected_paths(files: &[FileEntry]) -> Vec<PathBuf> {
         .collect()
 }
 
-pub fn apply_saved_state(files: &mut [FileEntry], selected_paths: &[PathBuf]) {
+pub fn apply_saved_state(files: &mut [Box<FileEntry>], selected_paths: &[PathBuf]) {
     for file in files {
         if selected_paths.contains(&file.path) {
             file.selected = true;
@@ -50,7 +50,7 @@ pub fn get_code_block_language<'a>(
         .unwrap_or("")
 }
 
-pub fn calculate_selected_files_size(files: &[FileEntry]) -> u64 {
+pub fn calculate_selected_files_size(files: &[Box<FileEntry>]) -> u64 {
     collect_selected_paths(files)
         .iter()
         .filter_map(|path| std::fs::metadata(path).ok().map(|metadata| metadata.len()))

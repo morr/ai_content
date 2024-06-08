@@ -27,7 +27,7 @@ impl epi::App for App {
                         add_to_parent(
                             &mut self.file_tree_app.files,
                             file_entry.path.clone().parent().unwrap(),
-                            file_entry,
+                            Box::new(file_entry),
                         );
                     }
                 }
