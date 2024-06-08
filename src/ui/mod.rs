@@ -16,7 +16,7 @@ pub struct App {
 impl epi::App for App {
     fn update(&mut self, ctx: &CtxRef, _frame: &epi::Frame) {
         panels::top_panel(ctx, &mut self.file_tree_app);
-
+        
         CentralPanel::default().show(ctx, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
                 ui.set_width(ui.available_width());
@@ -31,11 +31,7 @@ impl epi::App for App {
                         );
                     }
                 }
-                tree_renderer::render_tree(
-                    ui,
-                    &self.file_tree_app.base_dir,
-                    &mut self.file_tree_app.files,
-                );
+                tree_renderer::render_tree(ui, &self.file_tree_app.base_dir, &mut self.file_tree_app.files);
             });
         });
 

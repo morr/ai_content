@@ -21,7 +21,7 @@ pub fn toggle_selection(file: &mut FileEntry, selected: bool) {
         );
         file.selected = selected;
         for child in &mut file.children {
-            child.selected = selected;
+            toggle_selection(child, selected);
         }
     }
 }
@@ -31,4 +31,13 @@ pub fn calculate_selected_files_size(files: &[FileEntry]) -> u64 {
         .iter()
         .filter_map(|path| fs::metadata(path).ok().map(|metadata| metadata.len()))
         .sum()
+}
+
+pub fn update_parent_selection(file: &mut FileEntry) -> bool {
+    let mut any_selected = file.selected;
+    for child in &mut file.children {
+        any_selected |= update_parent_selection(child);
+    }
+    file.selected = any_selected;
+    any_selected
 }
