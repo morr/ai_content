@@ -41,3 +41,7 @@ pub fn update_parent_selection(file: &mut FileEntry) -> bool {
     file.selected = any_selected;
     any_selected
 }
+
+pub fn has_unselected_child(file: &FileEntry) -> bool {
+    file.children.iter().any(|child| !child.selected || (child.is_dir && has_unselected_child(child)))
+}

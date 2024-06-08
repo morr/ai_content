@@ -1,4 +1,4 @@
-use crate::entry::{FileEntry, toggle_selection, update_parent_selection};
+use crate::entry::{FileEntry, toggle_selection, update_parent_selection, has_unselected_child};
 use eframe::egui::{self, Ui};
 use std::path::PathBuf;
 
@@ -19,8 +19,9 @@ pub fn render_tree(ui: &mut Ui, base_dir: &PathBuf, files: &mut [FileEntry]) {
                 Err(_) => file.path.to_string_lossy().to_string(),
             };
             if file.is_dir {
+                let should_expand = has_unselected_child(file);
                 egui::CollapsingHeader::new(label)
-                    .default_open(file.selected)
+                    .default_open(should_expand)
                     .show(ui, |ui| {
                         render_tree(ui, base_dir, &mut file.children);
                     });
