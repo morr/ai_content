@@ -2,7 +2,7 @@ use crate::entry::{FileEntry, update_selection_recursive, has_unselected_child};
 use eframe::egui::{self, Ui};
 use std::path::PathBuf;
 
-pub fn render_tree(ui: &mut Ui, base_dir: &PathBuf, files: &mut [FileEntry], maybe_root: Option<&mut FileEntry>) {
+pub fn render_tree(ui: &mut Ui, base_dir: &PathBuf, files: &mut [FileEntry]) {
     let mut updates = Vec::new();
 
     for file in files.iter_mut() {
@@ -22,11 +22,10 @@ pub fn render_tree(ui: &mut Ui, base_dir: &PathBuf, files: &mut [FileEntry], may
             };
             if file.is_dir {
                 let should_expand = has_unselected_child(file);
-                let children = &mut file.children;
                 egui::CollapsingHeader::new(label)
                     .default_open(should_expand)
                     .show(ui, |ui| {
-                        render_tree(ui, base_dir, children, Some(file));
+                        render_tree(ui, base_dir, &mut file.children);
                     });
             } else {
                 ui.label(label);
@@ -37,10 +36,4 @@ pub fn render_tree(ui: &mut Ui, base_dir: &PathBuf, files: &mut [FileEntry], may
     for (path, selected) in updates {
         update_selection_recursive(files, &path, Some(selected));
     }
-
-    if let Some(root) = maybe_root {
-        let root_path = root.path.clone();
-        update_selection_recursive(std::slice::from_mut(root), &root_path, None);
-    }
 }
-
