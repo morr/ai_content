@@ -31,7 +31,7 @@ impl epi::App for App {
                         );
                     }
                 }
-                tree_renderer::render_tree(ui, &self.file_tree_app.base_dir, &mut self.file_tree_app.files);
+                tree_renderer::render_tree(ui, &self.file_tree_app.base_dir, &mut self.file_tree_app.files, None);
             });
         });
 
