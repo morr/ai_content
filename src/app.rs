@@ -1,5 +1,5 @@
 use crate::config::{get_config_file_path, get_supported_extensions, load_config, save_config};
-use crate::entry::FileEntry;
+use crate::entry::{FileEntry};
 use crate::utils::{apply_saved_state, calculate_selected_files_size};
 use crate::walker::build_file_tree;
 use crossbeam_channel::Sender;
@@ -9,7 +9,7 @@ use std::thread;
 
 #[derive(Default)]
 pub struct FileTreeApp {
-    pub files: Vec<Box<FileEntry>>,
+    pub files: Vec<FileEntry>,
     pub base_dir: PathBuf,
     pub supported_extensions: HashMap<String, String>,
 }

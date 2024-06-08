@@ -6,11 +6,11 @@ use std::path::{Path, PathBuf};
 pub struct FileEntry {
     pub path: PathBuf,
     pub is_dir: bool,
-    pub children: Vec<Box<FileEntry>>,
+    pub children: Vec<FileEntry>,
     pub selected: bool,
 }
 
-pub fn update_selection_recursive(files: &mut [Box<FileEntry>], path: &Path, selected: Option<bool>) -> bool {
+pub fn update_selection_recursive(files: &mut [FileEntry], path: &Path, selected: Option<bool>) -> bool {
     let mut any_selected = false;
 
     for file in files.iter_mut() {
@@ -38,4 +38,3 @@ pub fn has_unselected_child(file: &FileEntry) -> bool {
         .iter()
         .any(|child| !child.selected || (child.is_dir && has_unselected_child(child)))
 }
-

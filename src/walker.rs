@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 pub fn build_file_tree(
     base_path: &Path,
-    files: &mut Vec<Box<FileEntry>>,
+    files: &mut Vec<FileEntry>,
     tx: &Sender<FileEntry>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let walker = WalkBuilder::new(base_path)
@@ -16,7 +16,7 @@ pub fn build_file_tree(
         .add_custom_ignore_filename(".gitignore")
         .build();
 
-    let mut entries: Vec<Box<FileEntry>> = vec![];
+    let mut entries: Vec<FileEntry> = vec![];
     let mut processed_dirs: HashSet<PathBuf> = HashSet::new();
 
     for entry in walker.flatten() {
@@ -33,12 +33,12 @@ pub fn build_file_tree(
 
         info!("Found file: {}", entry_path.display());
 
-        let mut file_entry = Box::new(FileEntry {
+        let mut file_entry = FileEntry {
             path: entry_path.clone(),
             is_dir,
             children: vec![],
             selected: false,
-        });
+        };
 
         if is_dir {
             processed_dirs.insert(entry_path.clone());
@@ -46,7 +46,7 @@ pub fn build_file_tree(
         }
 
         entries.push(file_entry.clone());
-        tx.send(*file_entry)?;
+        tx.send(file_entry)?;
     }
 
     entries.sort_unstable_by(compare_entries);
@@ -62,7 +62,7 @@ pub fn build_file_tree(
     Ok(())
 }
 
-pub fn compare_entries(a: &Box<FileEntry>, b: &Box<FileEntry>) -> std::cmp::Ordering {
+pub fn compare_entries(a: &FileEntry, b: &FileEntry) -> std::cmp::Ordering {
     match (a.is_dir, b.is_dir) {
         (true, false) => std::cmp::Ordering::Less,
         (false, true) => std::cmp::Ordering::Greater,
@@ -71,9 +71,9 @@ pub fn compare_entries(a: &Box<FileEntry>, b: &Box<FileEntry>) -> std::cmp::Orde
 }
 
 pub fn add_to_parent(
-    files: &mut Vec<Box<FileEntry>>,
+    files: &mut Vec<FileEntry>,
     parent_path: &Path,
-    file_entry: Box<FileEntry>,
+    file_entry: FileEntry,
 ) -> bool {
     for file in files {
         if file.path == parent_path {

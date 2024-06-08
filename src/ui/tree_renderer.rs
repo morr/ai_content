@@ -3,7 +3,7 @@ use eframe::egui::{self, Ui};
 use std::path::PathBuf;
 use std::collections::HashSet;
 
-pub fn render_tree(ui: &mut Ui, base_dir: &PathBuf, files: &mut [Box<FileEntry>]) {
+pub fn render_tree(ui: &mut Ui, base_dir: &PathBuf, files: &mut [FileEntry]) {
     let mut parent_paths_to_update = HashSet::new();
     let mut updates = Vec::new();
 
