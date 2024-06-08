@@ -12,6 +12,7 @@ pub fn build_file_tree(
     tx: &Sender<FileEntry>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let walker = WalkBuilder::new(base_path)
+        .standard_filters(false) // This includes hidden files and directories
         .add_custom_ignore_filename(".gitignore")
         .build();
 
