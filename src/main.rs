@@ -14,10 +14,8 @@ use std::env;
 use std::io::Write;
 
 fn main() {
-    // Set the RUST_LOG environment variable programmatically
     env::set_var("RUST_LOG", "info");
 
-    // Initialize env_logger with a custom format
     Builder::from_default_env()
         .format(|buf, record| {
             let mut style = buf.style();
@@ -26,7 +24,7 @@ fn main() {
             writeln!(
                 buf,
                 "[{}] {}",
-                style.value(record.target()), // Only the module name is green
+                style.value(record.target()), 
                 record.args()
             )
         })

@@ -8,7 +8,7 @@ pub fn render_tree(ui: &mut Ui, base_dir: &PathBuf, files: &mut [FileEntry]) {
             let mut selected = file.selected;
             if ui.checkbox(&mut selected, "").clicked() {
                 toggle_selection(file, selected);
-                update_selection_state(file); // This ensures the parent selection state is updated.
+                update_selection_state(file); 
             }
             let label = match file.path.strip_prefix(base_dir) {
                 Ok(p) => p

@@ -30,9 +30,7 @@ impl FileTreeApp {
             thread_files
         });
 
-        let files = handle.join().expect("Thread panicked");
-
-        let mut files = files;
+        let mut files = handle.join().expect("Thread panicked");
         if let Ok(saved_state) = load_config(&config_file) {
             apply_saved_state(&mut files, &saved_state);
         }

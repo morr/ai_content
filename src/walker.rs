@@ -12,7 +12,7 @@ pub fn build_file_tree(
     tx: &Sender<FileEntry>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let walker = WalkBuilder::new(base_path)
-        .standard_filters(false) // This includes hidden files and directories
+        .standard_filters(false)
         .add_custom_ignore_filename(".gitignore")
         .build();
 
@@ -27,7 +27,6 @@ pub fn build_file_tree(
 
         let is_dir = entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false);
 
-        // Check if current path is contained within any of the already processed directories
         if processed_dirs.iter().any(|dir| entry_path.starts_with(dir)) {
             continue;
         }
@@ -87,8 +86,7 @@ pub fn add_to_parent(
                 file.children.sort_unstable_by(compare_entries);
             }
             return true;
-        } else if file.is_dir && add_to_parent(&mut file.children, parent_path, file_entry.clone())
-        {
+        } else if file.is_dir && add_to_parent(&mut file.children, parent_path, file_entry.clone()) {
             return true;
         }
     }
