@@ -1,10 +1,8 @@
-use crate::entry::{FileEntry, update_selection_recursive, has_unselected_child};
+use crate::entry::{has_selected_and_not_selected, update_selection_recursive, FileEntry};
 use eframe::egui::{self, Ui};
 use std::path::PathBuf;
-use std::collections::HashSet;
 
 pub fn render_tree(ui: &mut Ui, base_dir: &PathBuf, files: &mut [FileEntry]) {
-    let mut parent_paths_to_update = HashSet::new();
     let mut updates = Vec::new();
 
     for file in files.iter_mut() {
@@ -13,9 +11,6 @@ pub fn render_tree(ui: &mut Ui, base_dir: &PathBuf, files: &mut [FileEntry]) {
             let mut selected = file.selected;
             if ui.checkbox(&mut selected, "").clicked() {
                 updates.push((path_clone.clone(), selected));
-                if let Some(parent_path) = path_clone.parent() {
-                    parent_paths_to_update.insert(parent_path.to_path_buf());
-                }
             }
             let label = match file.path.strip_prefix(base_dir) {
                 Ok(p) => p
@@ -26,7 +21,7 @@ pub fn render_tree(ui: &mut Ui, base_dir: &PathBuf, files: &mut [FileEntry]) {
                 Err(_) => file.path.to_string_lossy().to_string(),
             };
             if file.is_dir {
-                let should_expand = has_unselected_child(file);
+                let should_expand = has_selected_and_not_selected(file);
                 egui::CollapsingHeader::new(label)
                     .default_open(should_expand)
                     .show(ui, |ui| {
@@ -41,8 +36,5 @@ pub fn render_tree(ui: &mut Ui, base_dir: &PathBuf, files: &mut [FileEntry]) {
     for (path, selected) in updates {
         update_selection_recursive(files, &path, Some(selected));
     }
-
-    for parent_path in parent_paths_to_update {
-        update_selection_recursive(files, &parent_path, None);
-    }
 }
+
