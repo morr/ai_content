@@ -37,4 +37,3 @@ pub fn render_tree(ui: &mut Ui, base_dir: &PathBuf, files: &mut [FileEntry]) {
         update_selection_recursive(files, &path, Some(selected));
     }
 }
-

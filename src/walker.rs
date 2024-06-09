@@ -86,7 +86,8 @@ pub fn add_to_parent(
                 file.children.sort_unstable_by(compare_entries);
             }
             return true;
-        } else if file.is_dir && add_to_parent(&mut file.children, parent_path, file_entry.clone()) {
+        } else if file.is_dir && add_to_parent(&mut file.children, parent_path, file_entry.clone())
+        {
             return true;
         }
     }

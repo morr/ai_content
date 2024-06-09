@@ -39,3 +39,4 @@ pub fn load_config(config_file: &Path) -> std::io::Result<Vec<PathBuf>> {
     let selected_paths: Vec<PathBuf> = serde_json::from_str(&data)?;
     Ok(selected_paths)
 }
+
